@@ -35,10 +35,15 @@ class MessagesAdapter: RecyclerView.Adapter<MessagesAdapter.MessagesViewHolder>(
     override fun onBindViewHolder(holder: MessagesViewHolder, position: Int) {
         holder.textViewAuthor.text = messages[position].author
         val textOfMessage = messages[position].textOfMessage
-        if (textOfMessage.isNotEmpty()){
+  //      val urlToImage =  messages[position].imageUrl
+        if (textOfMessage != null && textOfMessage.isNotEmpty()){
             holder.textViewMessage.text = messages[position].textOfMessage
             holder.imageView.visibility = View.GONE
         }
+//        if (urlToImage != null && urlToImage.isNotEmpty()){
+//            holder.imageView.visibility = View.VISIBLE
+//            Picasso.get().load(urlToImage).into(holder.imageView)
+//        }
 
     }
 

@@ -86,7 +86,8 @@ class MainActivity : AppCompatActivity() {
         recyclerViewMessages.layoutManager = LinearLayoutManager(this)
         recyclerViewMessages.adapter = messagesAdapter
         imageViewSendMessage.setOnClickListener{
-            sendMessage()
+            val textOfMessage = editTextMessage.text.toString().trim()
+            sendMessage(textOfMessage)
         }
 
         imageViewAddImage.setOnClickListener {
@@ -151,15 +152,12 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun sendMessage(){
-        val textOfMessage = editTextMessage.text.toString().trim()
+    private fun sendMessage(textOfMessage: String){
         if(textOfMessage.isNotEmpty()){
-            val editableText = Editable.Factory.getInstance().newEditable("")
-            editTextMessage.text= editableText
-            recyclerViewMessages.scrollToPosition(messagesAdapter.itemCount - 1)
             db.collection("messages").add(Message(author, textOfMessage, System.currentTimeMillis()))
                 .addOnSuccessListener {
-                    editTextMessage.text= editableText
+                    editTextMessage.setText("")
+                    recyclerViewMessages.scrollToPosition(messagesAdapter.itemCount - 1)
                 }
                 .addOnFailureListener {
                     Toast.makeText(this, "Сообщение не отправлено",Toast.LENGTH_LONG).show()
