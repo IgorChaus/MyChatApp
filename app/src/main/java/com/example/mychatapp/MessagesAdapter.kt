@@ -4,8 +4,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.squareup.picasso.Picasso
 
 class MessagesAdapter: RecyclerView.Adapter<MessagesAdapter.MessagesViewHolder>(){
 
@@ -18,6 +20,7 @@ class MessagesAdapter: RecyclerView.Adapter<MessagesAdapter.MessagesViewHolder>(
     class MessagesViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val textViewAuthor: TextView = itemView.findViewById(R.id.textViewAuthor)
         val textViewMessage: TextView = itemView.findViewById(R.id.textViewTextOfMessage)
+        val imageView: ImageView = itemView.findViewById(R.id.imageViewImage)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessagesViewHolder {
@@ -31,7 +34,12 @@ class MessagesAdapter: RecyclerView.Adapter<MessagesAdapter.MessagesViewHolder>(
 
     override fun onBindViewHolder(holder: MessagesViewHolder, position: Int) {
         holder.textViewAuthor.text = messages[position].author
-        holder.textViewMessage.text = messages[position].textOfMessage
+        val textOfMessage = messages[position].textOfMessage
+        if (textOfMessage.isNotEmpty()){
+            holder.textViewMessage.text = messages[position].textOfMessage
+            holder.imageView.visibility = View.GONE
+        }
+
     }
 
     override fun getItemCount(): Int {
