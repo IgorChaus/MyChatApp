@@ -1,10 +1,9 @@
 package com.example.mychatapp
 
-import android.content.Intent
+import android.content.Context
+import android.content.SharedPreferences
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.text.Editable
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -12,19 +11,16 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract
-import com.firebase.ui.auth.IdpResponse
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.firestore
-import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.storage
-import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +28,8 @@ class MainActivity : AppCompatActivity() {
     private val auth = FirebaseAuth.getInstance()
     private val storage = Firebase.storage
     var storageRef = storage.reference
+
+    private lateinit var preferences: SharedPreferences
 
     private val signInLauncher = registerForActivityResult(
         FirebaseAuthUIActivityResultContract(),
@@ -50,12 +48,10 @@ class MainActivity : AppCompatActivity() {
                     referenceToImage.downloadUrl
                         .addOnSuccessListener { url ->
                             val downloadUrl = url.toString()
-                            // Теперь у вас есть ссылка на загруженный файл, которую вы можете использовать по вашему усмотрению
+                            sendMessage(null, downloadUrl)
                             Log.i("MyTag", "Ссылка на загруженный файл: $downloadUrl")
-                            // Вы также можете передать эту ссылку в другую часть кода или отобразить ее для пользователя
                         }
                         .addOnFailureListener {
-                            // Обработка ошибок получения ссылки на загруженный файл, если таковые имеются
                             Log.e("MyTag", "Ошибка получения ссылки на загруженный файл", it)
                         }
                     Toast.makeText(this, "Load success", Toast.LENGTH_LONG).show()
@@ -70,12 +66,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerViewMessages: RecyclerView
     private lateinit var imageViewSendMessage: ImageView
     private lateinit var imageViewAddImage: ImageView
-    private val messagesAdapter = MessagesAdapter()
-    private var author = "Игорь"
+    private val messagesAdapter = MessagesAdapter(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        preferences = this.getSharedPreferences("com.example.mychatapp", Context.MODE_PRIVATE)
 
         recyclerViewMessages = findViewById<RecyclerView>(R.id.recyclerViewMessages)
 
@@ -87,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         recyclerViewMessages.adapter = messagesAdapter
         imageViewSendMessage.setOnClickListener{
             val textOfMessage = editTextMessage.text.toString().trim()
-            sendMessage(textOfMessage)
+            sendMessage(textOfMessage, null)
         }
 
         imageViewAddImage.setOnClickListener {
@@ -95,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (auth.currentUser != null) {
-            Toast.makeText(this, "Logged", Toast.LENGTH_LONG).show()
+            preferences.edit().putString("author", auth.currentUser?.email).apply()
         } else {
             signOut()
         }
@@ -144,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         val response = result.idpResponse
         if (result.resultCode == RESULT_OK) {
             val user = FirebaseAuth.getInstance().currentUser
-            author = user?.email ?: ""
+            preferences.edit().putString("author", user?.email).apply()
             Toast.makeText(this, "Loggined ${user?.email}",Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, "Error ${response?.error}",Toast.LENGTH_LONG).show()
@@ -152,9 +149,16 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun sendMessage(textOfMessage: String){
-        if(textOfMessage.isNotEmpty()){
-            db.collection("messages").add(Message(author, textOfMessage, System.currentTimeMillis()))
+    private fun sendMessage(textOfMessage: String?, urlToImage: String?){
+        var message: Message? = null
+        val author = preferences.getString("author", "Anonim") ?:"Anonim"
+        if(textOfMessage != null && textOfMessage.isNotEmpty()){
+            message = Message(author, textOfMessage, System.currentTimeMillis(), null)
+        } else if (urlToImage != null && urlToImage.isNotEmpty()){
+            message = Message(author, null, System.currentTimeMillis(), urlToImage)
+        }
+        if (message != null) {
+            db.collection("messages").add(message)
                 .addOnSuccessListener {
                     editTextMessage.setText("")
                     recyclerViewMessages.scrollToPosition(messagesAdapter.itemCount - 1)
@@ -162,7 +166,6 @@ class MainActivity : AppCompatActivity() {
                 .addOnFailureListener {
                     Toast.makeText(this, "Сообщение не отправлено",Toast.LENGTH_LONG).show()
                 }
-
         }
     }
 
